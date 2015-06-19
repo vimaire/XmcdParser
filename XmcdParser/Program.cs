@@ -13,7 +13,7 @@ namespace XmcdParser
 		static void Main()
         {
             var sp = Stopwatch.StartNew();
-            foreach (var disk in ParseDisks(@"C:\Users\alexandret\Downloads\freedb-complete-20150601.tar.bz2"))
+            foreach (var disk in ParseDisks(@"D:\github\freedb-complete-20150601.tar.bz2"))
             {
 
 				Console.WriteLine();
