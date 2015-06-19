@@ -1,10 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using ICSharpCode.SharpZipLib.BZip2;
 using ICSharpCode.SharpZipLib.Tar;
-using Raven.Client.Document;
-using System.Threading;
 
 namespace XmcdParser
 {
@@ -12,22 +11,10 @@ namespace XmcdParser
 	{
 		private const int BatchSize = 24;
 		static void Main()
-		{
-            using (var store = new DocumentStore
-			{
-				Url = "http://localhost:8080",
-				DefaultDatabase = "freedb",               
-			}.Initialize(true))
-			{
-			    var sp = Stopwatch.StartNew();
-                using (var insert = store.BulkInsert())
-                {
-                    insert.Report += Console.WriteLine;
-                    ParseDisks(insert);
-                }
-
-                while (store.DatabaseCommands.GetStatistics().StaleIndexes.Length != 0)
-                    Thread.Sleep(500);
+        {
+            var sp = Stopwatch.StartNew();
+            foreach (var disk in ParseDisks(@"C:\Users\alexandret\Downloads\freedb-complete-20150601.tar.bz2"))
+            {
 
 				Console.WriteLine();
 				Console.WriteLine("Done in {0}", sp.Elapsed);
@@ -36,13 +23,13 @@ namespace XmcdParser
             Console.ReadLine();
 		}
 
-		private static void ParseDisks(BulkInsertOperation insert)
+		private static IEnumerable<Disk> ParseDisks(string filePath)
 		{
 			int i = 0;
 			var parser = new Parser();
 			var buffer = new byte[1024*1024];// more than big enough for all files
 
-            using (var bz2 = new BZip2InputStream(File.Open(@"D:\Scratch\freedb-complete-20150101.tar.bz2", FileMode.Open)))
+            using (var bz2 = new BZip2InputStream(File.Open(filePath, FileMode.Open)))
 			using (var tar = new TarInputStream(bz2))
 			{
 				TarEntry entry;
@@ -63,18 +50,23 @@ namespace XmcdParser
 					// we do it in this fashion to have the stream reader detect the BOM / unicode / other stuff
 					// so we can read the values properly
 					var fileText = new StreamReader(new MemoryStream(buffer,0, readSoFar)).ReadToEnd();
+				    Disk disk = null;
 					try
 					{
-						var disk = parser.Parse(fileText);
-						insert.Store(disk);
+						disk = parser.Parse(fileText);
 					}
 					catch (Exception e)
 					{
 						Console.WriteLine();
 						Console.WriteLine(entry.Name);
 						Console.WriteLine(e);
-					}
+                    }
+                    if(disk != null)
+                    {
+                        yield return disk;
+                    }
 				}
+                yield break;
 			}
 		}
 	}
