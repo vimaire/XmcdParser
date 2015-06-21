@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
+using System.Text;
 using ICSharpCode.SharpZipLib.BZip2;
 using ICSharpCode.SharpZipLib.Tar;
 
@@ -11,12 +13,22 @@ namespace XmcdParser
 	{
 		private const int BatchSize = 24;
 		static void Main()
-        {
+		{
+		    var client = new HttpClient();
+            var uri = new Uri("http://localhost:1666/api/disks");
+
             var sp = Stopwatch.StartNew();
             foreach (var disk in ParseDisks(@"D:\github\freedb-complete-20150601.tar.bz2"))
             {
-
-				Console.WriteLine();
+                try
+                {
+                    var res = client.PostAsJsonAsync(uri, disk).Result;
+                    Console.WriteLine(res.ToString());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
 				Console.WriteLine("Done in {0}", sp.Elapsed);
 			}
 
@@ -49,7 +61,7 @@ namespace XmcdParser
 					}
 					// we do it in this fashion to have the stream reader detect the BOM / unicode / other stuff
 					// so we can read the values properly
-					var fileText = new StreamReader(new MemoryStream(buffer,0, readSoFar)).ReadToEnd();
+					var fileText = new StreamReader(new MemoryStream(buffer,0, readSoFar), Encoding.UTF8).ReadToEnd();
 				    Disk disk = null;
 					try
 					{
