@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -15,10 +16,11 @@ namespace XmcdParser
 		static void Main()
 		{
 		    var client = new HttpClient();
-            var uri = new Uri("http://localhost:1666/api/albums");
+            var uri = new Uri(ConfigurationManager.AppSettings["AlbumsApiUri"]);
 
             var sp = Stopwatch.StartNew();
-            foreach (var disk in ParseDisks(@"D:\github\freedb-complete-20150601.tar.bz2"))
+		    var path = ConfigurationManager.AppSettings["FreeDbFullPath"];
+            foreach (var disk in ParseDisks(path))
             {
                 try
                 {
